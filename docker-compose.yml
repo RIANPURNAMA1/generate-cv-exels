@@ -1,0 +1,76 @@
+name: pengisi-template-cv
+
+x-app: &app
+  build:
+    context: .
+    dockerfile: docker/app/Dockerfile
+  env_file: .env
+  environment:
+    DB_HOST: db
+    REDIS_HOST: redis
+    REDIS_CLIENT: predis
+    QUEUE_CONNECTION: redis
+    CACHE_STORE: redis
+    SESSION_DRIVER: redis
+  volumes:
+    - storage:/var/www/html/storage
+  depends_on:
+    db: { condition: service_healthy }
+    redis: { condition: service_started }
+  restart: unless-stopped
+
+services:
+  app:
+    <<: *app
+    environment:
+      DB_HOST: db
+      REDIS_HOST: redis
+      REDIS_CLIENT: predis
+      QUEUE_CONNECTION: redis
+      CACHE_STORE: redis
+      SESSION_DRIVER: redis
+      RUN_MIGRATIONS: "true"
+
+  queue:
+    <<: *app
+    command: php artisan queue:work redis --tries=2 --timeout=600 --sleep=2 --max-time=3600
+
+  scheduler:
+    <<: *app
+    command: php artisan schedule:work
+
+  nginx:   # menyajikan build statis frontend dan meneruskan /api ke php-fpm
+    build:
+      context: ./frontend
+      args:
+        VITE_USE_MOCK: "false"
+    ports:
+      - "${WEB_PORT:-8080}:80"
+    depends_on:
+      - app
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]   # tanpa persistensi: antrean/cache saja
+    restart: unless-stopped
+
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_RANDOM_ROOT_PASSWORD: "yes"
+    volumes:
+      - dbdata:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u$$MYSQL_USER -p$$MYSQL_PASSWORD --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+volumes:
+  dbdata:
+  storage:
