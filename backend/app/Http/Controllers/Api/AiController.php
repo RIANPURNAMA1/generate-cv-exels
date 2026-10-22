@@ -7,22 +7,45 @@ use App\Jobs\ImportPdfJob;
 use App\Jobs\RunAiSuggestionsJob;
 use App\Models\AiRun;
 use App\Models\Participant;
-use App\Services\Ai\ClaudeClient;
+use App\Services\Ai\AiProviderManager;
 use App\Support\UploadGuard;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
 class AiController extends Controller
 {
-    /** Hanya status aktif/nonaktif. API key tidak pernah dikirim ke frontend. */
+    public function __construct(private AiProviderManager $manager)
+    {
+    }
+
+    /**
+     * Status AI: penyedia aktif, model, dan daftar penyedia yang tersedia.
+     * API key tidak pernah dikirim ke frontend (hanya status "ada kunci").
+     */
     public function status()
     {
-        return ['enabled' => ClaudeClient::enabled()];
+        return $this->manager->status();
+    }
+
+    /** Simpan pengaturan AI: penyedia, model, status aktif, dan kunci API (opsional). */
+    public function updateSettings(Request $r)
+    {
+        $d = $r->validate([
+            'provider' => 'nullable|string|in:claude,openai,gemini',
+            'model' => 'nullable|string|max:120',
+            'enabled' => 'nullable|boolean',
+            'apiKey' => 'nullable|string|max:400',
+        ]);
+        return $this->manager->update($d);
     }
 
     private function guard()
     {
-        return ClaudeClient::enabled() ? null : response()->json(['message' => 'Langkah AI belum diaktifkan (ANTHROPIC_API_KEY kosong).'], 503);
+        return $this->manager->enabled() ? null : response()->json([
+            'message' => $this->manager->reason(),
+            'reason' => $this->manager->reason(),
+            'providers' => $this->manager->status()['providers'],
+        ], 503);
     }
 
     public function suggest(Request $r)
@@ -39,7 +62,13 @@ class AiController extends Controller
 
         $run = AiRun::create([
             'user_id' => app_user_id(), 'kind' => 'suggest', 'status' => 'queued',
-            'input' => ['participantIds' => $owned, 'tasks' => array_values(array_unique($d['tasks']))],
+            'input' => [
+                'participantIds' => $owned,
+                'tasks' => array_values(array_unique($d['tasks'])),
+                // Cuplikan pengaturan: pekerjaan berjalan dengan penyedia yang sama.
+                'provider' => $this->manager->activeProvider(),
+                'model' => $this->manager->activeModel(),
+            ],
             'expires_at' => now()->addHours((int) config('cv.retention_hours', 24)),
         ]);
         RunAiSuggestionsJob::dispatch($run->id);
@@ -59,6 +88,10 @@ class AiController extends Controller
         Storage::disk('local')->putFileAs('imports', $f, basename($rel));
         $run = AiRun::create([
             'user_id' => app_user_id(), 'kind' => 'import', 'status' => 'queued', 'file_path' => $rel,
+            'input' => [
+                'provider' => $this->manager->activeProvider(),
+                'model' => $this->manager->activeModel(),
+            ],
             'expires_at' => now()->addHours((int) config('cv.retention_hours', 24)),
         ]);
         ImportPdfJob::dispatch($run->id);

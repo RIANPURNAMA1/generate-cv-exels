@@ -87,6 +87,33 @@ export interface AiJob {
 
 export type Severity = 'error' | 'warning';
 
+export type AiProviderId = 'claude' | 'openai' | 'gemini';
+
+export interface AiProviderInfo {
+  id: AiProviderId;
+  label: string;
+  model: string;
+  models: string[];
+  hasKey: boolean;
+  nativePdf: boolean;
+}
+
+export interface AiStatus {
+  enabled: boolean;
+  provider: AiProviderId;
+  providerLabel: string;
+  model: string;
+  providers: AiProviderInfo[];
+  reason?: string | null;
+}
+
+export interface AiSettingsInput {
+  provider?: AiProviderId;
+  model?: string;
+  enabled?: boolean;
+  apiKey?: string;
+}
+
 export interface Issue {
   participantId: string;
   participantLabel: string;

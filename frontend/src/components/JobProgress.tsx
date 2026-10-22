@@ -15,8 +15,8 @@ export function JobProgress({ job }: { job: JobStatus | undefined }) {
           <span aria-live="polite">{job.status === 'done' ? 'Selesai' : job.status === 'failed' ? 'Gagal' : 'Sedang membuat CV…'}</span>
           <span>{finished}/{job.items.length}</span>
         </div>
-        <div className="h-2 rounded-md bg-slate-200" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label="Progres pembuatan CV">
-          <div className="h-2 rounded-md bg-navy transition-all" style={{ width: `${pct}%` }} />
+        <div className="h-2 rounded-full bg-google-gray-200" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label="Progres pembuatan CV">
+          <div className="h-2 rounded-full bg-google-blue transition-all" style={{ width: `${pct}%` }} />
         </div>
       </div>
 
@@ -25,19 +25,19 @@ export function JobProgress({ job }: { job: JobStatus | undefined }) {
           <li key={i} className="card text-sm">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <span className="font-medium">{it.participantName}</span>
-              <span className={`badge ${it.status === 'done' ? 'bg-green-100 text-green-800' : it.status === 'failed' ? 'bg-red-100 text-red-800' : 'bg-slate-100 text-slate-700'}`}>{LABEL[it.status]}</span>
+              <span className={`badge ${it.status === 'done' ? 'bg-google-green-surface text-google-green-hover' : it.status === 'failed' ? 'bg-google-red-surface text-google-red' : 'bg-google-gray-100 text-google-gray-700'}`}>{LABEL[it.status]}</span>
             </div>
-            {it.error && <p role="alert" className="mt-1 text-xs text-red-700">{it.error}</p>}
+            {it.error && <p role="alert" className="mt-1 text-xs text-google-red">{it.error}</p>}
             {it.warnings.length > 0 && (
               <details className="mt-1">
-                <summary className="cursor-pointer text-xs text-amber-800">{it.warnings.length} peringatan</summary>
-                <ul className="mt-1 list-disc pl-5 text-xs text-amber-900">{it.warnings.map((w) => <li key={w}>{w}</li>)}</ul>
+                <summary className="cursor-pointer text-xs font-medium text-google-yellow-hover">{it.warnings.length} peringatan</summary>
+                <ul className="mt-1 list-disc pl-5 text-xs text-google-gray-600">{it.warnings.map((w) => <li key={w}>{w}</li>)}</ul>
               </details>
             )}
             {it.status === 'done' && (
               <div className="mt-2 flex gap-3 text-sm">
-                {it.xlsxUrl && <a className="text-navy underline" href={it.xlsxUrl} download>Unduh .xlsx</a>}
-                {it.pdfUrl && <a className="text-navy underline" href={it.pdfUrl} download>Unduh .pdf</a>}
+                {it.xlsxUrl && <a className="font-medium text-google-blue hover:underline" href={it.xlsxUrl} download>Unduh .xlsx</a>}
+                {it.pdfUrl && <a className="font-medium text-google-blue hover:underline" href={it.pdfUrl} download>Unduh .pdf</a>}
               </div>
             )}
           </li>

@@ -1,4 +1,4 @@
-import type { AiJob, AiTask, DataRow, DatasetUpload, GenerateRequest, JobStatus, TemplateInfo } from '../types';
+import type { AiJob, AiSettingsInput, AiStatus, AiTask, DataRow, DatasetUpload, GenerateRequest, JobStatus, TemplateInfo } from '../types';
 import { ApiError, type Api } from './types';
 
 const BASE = '/api';
@@ -85,7 +85,8 @@ export const realApi: Api = {
     await request<void>('/session', { method: 'DELETE' }, true);
   },
 
-  aiStatus: () => request<{ enabled: boolean }>('/ai/status'),
+  aiStatus: () => request<AiStatus>('/ai/status'),
+  updateAiSettings: (input: AiSettingsInput) => request<AiStatus>('/ai/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input) }),
   startAiSuggest: (participantIds: string[], tasks: AiTask[]) => request<{ jobId: string }>('/ai/suggest', json({ participantIds, tasks })),
   getAiJob: (id) => request<AiJob>(`/ai/jobs/${id}`),
   async importPdf(file) {

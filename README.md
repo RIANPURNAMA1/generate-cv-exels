@@ -45,14 +45,36 @@ Katalog baku ada di `backend/config/cv_fields.php` (nama, label, tipe, format, b
 3. Format khusus: tambahkan `case` di `app/Services/ValueFormatter.php`; cerminkan di `frontend/src/lib/validator.ts` bila perlu.
 4. Bagian form manual: `frontend/src/lib/catalog.ts`.
 
-## Langkah AI (opsional)
-Isi `ANTHROPIC_API_KEY` (dan opsional `CLAUDE_MODEL`, default `claude-sonnet-5-5`) di `.env`, lalu `docker compose up -d`.
-Key hanya ada di backend; frontend hanya mengetahui `{enabled: true/false}` dari `GET /api/ai/status`.
-Panggilan lewat queue job dengan timeout 60 detik, retry terbatas, keluaran dipaksa terstruktur (tool use), divalidasi
+## Langkah AI (opsional, multi-penyedia)
+AI memakai satu lapisan abstraksi (`app/Services/Ai/`) dengan tiga penyedia yang bisa dipilih **saat aplikasi berjalan**:
+Claude (Anthropic), GPT (OpenAI), dan Gemini (Google).
+
+Dua cara mengaktifkan:
+1. **Environment** ( Recommended untuk server): isi `AI_PROVIDER=claude|openai|gemini` plus kunci providers di `.env`
+   (`ANTHROPIC_API_KEY` / `OPENAI_API_KEY` / `GEMINI_API_KEY`, opsional `*_MODEL` dan `*_BASE_URL`), lalu `docker compose up -d`.
+2. **Antarmuka aplikasi**: tombol “AI” di app bar (atau “Kunci & model” di tab Impor PDF) → pilih penyedia, model, dan tempel
+   kunci API. Kunci disimpan **terenkripsi** di tabel `ai_settings` (kolom `api_keys`, cast `encrypted:array`) dan tidak pernah
+   dikirim ke browser; `GET /api/ai/status` hanya membocorkan `hasKey` per penyedia.
+
+`PUT /api/ai/settings` mengubah `{provider, model, enabled, apiKey}`; pilihan penyedia/model di-cuplik ke `ai_runs.input`
+saat job dibuat, sehingga pekerjaan yang sedang berjalan tidak berubah di tengah jalan. Bila penyedia aktif belum punya kunci,
+`/api/ai/suggest` dan `/api/imports/pdf` membalas 503 beserta alasannya.
+
+| Penyedia | Endpoint | Keluaran terstruktur | PDF native |
+|---|---|---|---|
+| Claude | `POST /v1/messages` + `tool_choice` | tool use `submit_result` | ya (blok `document`) |
+| GPT | `POST /v1/chat/completions` | `response_format: json_schema` | tidak → teks diekstrak lokal (`pdftotext`) |
+| Gemini | `POST /v1beta/models/{model}:generateContent` | `responseSchema` + `application/json` | ya (`inline_data`) |
+
+Panggilan lewat queue job dengan timeout (default 90 detik), retry terbatas, keluaran dipaksa terstruktur lalu divalidasi
 (katakana dicek karakter, kunci asing dibuang), dan pencatatan token tanpa isi data pribadi.
+Nama model ditulis bebas (mis. “Gemini 3.1 Flash-Lite”); untuk Gemini nama tampilan otomatis dinormalkan menjadi id API
+(`gemini-3.1-flash-lite`) lalu disimpan kembali. Galat penyedia (mis. model tidak dikenal) ditampilkan apa adanya di antarmuka,
+tanpa membocorkan kunci API.
+
 Tugas: katakana (nama, tempat lahir, nama keluarga), terjemahan Jepang (7 bidang informasi personal, tanpa menambah fakta;
 sumber kosong → kalimat netral `特にありません。` + peringatan, tanpa memanggil AI), padanan Jepang (pekerjaan/jurusan/pekerjaan keluarga),
-impor PDF (dokumen dikirim ke Claude, foto diekstrak dengan `pdfimages`). Semua hasil berstatus “Disarankan AI”,
+impor PDF (dokumen dikirim ke penyedia; foto diekstrak dengan `pdfimages`). Semua hasil berstatus “Disarankan AI”,
 bisa diterima/diedit/ditolak sebelum pembuatan file; versi asli dan versi AI disimpan (terenkripsi) di tabel `ai_runs`.
 
 ## Keamanan dan privasi

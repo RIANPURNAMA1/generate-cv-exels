@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useState, type ReactNode } from 'react';
+import { AiSettingsProvider } from './components/AiSettingsDialog';
 import { ToastProvider } from './components/Toast';
 import { WizardProvider } from './state/wizard';
 
@@ -8,7 +9,9 @@ export function Providers({ children }: { children: ReactNode }) {
   return (
     <QueryClientProvider client={client}>
       <WizardProvider>
-        <ToastProvider>{children}</ToastProvider>
+        <ToastProvider>
+          <AiSettingsProvider>{children}</AiSettingsProvider>
+        </ToastProvider>
       </WizardProvider>
     </QueryClientProvider>
   );

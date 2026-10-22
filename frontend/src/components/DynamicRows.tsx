@@ -35,13 +35,13 @@ export function DynamicRows({ group, values, errors, optionsFor, onPatch }: Prop
 
   return (
     <fieldset className="space-y-3">
-      <legend className="mb-1 text-sm font-semibold text-navy">{group.title}</legend>
+      <legend className="mb-1 text-sm font-semibold text-google-gray-900">{group.title}</legend>
       {Array.from({ length: count }, (_, k) => k + 1).map((i) => (
-        <div key={i} className="rounded-md border border-slate-200 p-3">
+        <div key={i} className="rounded-inner border border-slate-200 bg-google-gray-50 p-3">
           <div className="mb-2 flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-500">{group.title} {i}</span>
+            <span className="text-xs font-medium text-google-gray-500">{group.title} {i}</span>
             {count > 1 && (
-              <button type="button" className="text-xs text-red-700 underline" onClick={() => removeRow(i)} aria-label={`Hapus baris ${group.title} ${i}`}>
+              <button type="button" className="text-xs font-medium text-google-red hover:underline" onClick={() => removeRow(i)} aria-label={`Hapus baris ${group.title} ${i}`}>
                 Hapus baris
               </button>
             )}
@@ -62,7 +62,7 @@ export function DynamicRows({ group, values, errors, optionsFor, onPatch }: Prop
                   ) : (
                     <input id={n} className="input" value={values[n] ?? ''} placeholder={s.hint} onChange={(e) => onPatch({ [n]: e.target.value })} aria-invalid={!!err} />
                   )}
-                  {err && <p className="mt-0.5 text-xs text-red-700">{err}</p>}
+                  {err && <p className="mt-0.5 text-xs text-google-red">{err}</p>}
                 </div>
               );
             })}

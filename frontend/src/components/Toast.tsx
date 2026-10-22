@@ -13,16 +13,16 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   }, []);
   const value = useMemo(() => ({ push }), [push]);
   const color: Record<Kind, string> = {
-    info: 'border-slate-300 bg-white text-slate-800',
-    success: 'border-green-300 bg-green-50 text-green-900',
-    error: 'border-red-300 bg-red-50 text-red-900',
+    info: 'border-slate-200 bg-white text-google-gray-700',
+    success: 'border-google-green-border bg-google-green-surface text-google-green-hover',
+    error: 'border-google-red-border bg-google-red-surface text-google-red',
   };
   return (
     <Ctx.Provider value={value}>
       {children}
-      <div className="pointer-events-none fixed bottom-4 right-4 z-50 flex w-80 max-w-[calc(100vw-2rem)] flex-col gap-2" role="status" aria-live="polite">
+      <div className="pointer-events-none fixed bottom-20 right-4 z-50 flex w-80 max-w-[calc(100vw-2rem)] flex-col gap-2" role="status" aria-live="polite">
         {items.map((t) => (
-          <div key={t.id} className={`pointer-events-auto rounded-md border px-3 py-2 text-sm ${color[t.kind]}`}>{t.text}</div>
+          <div key={t.id} className={`pointer-events-auto rounded-card border px-4 py-3 text-sm shadow-card-hover ${color[t.kind]}`}>{t.text}</div>
         ))}
       </div>
     </Ctx.Provider>

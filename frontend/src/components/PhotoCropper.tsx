@@ -66,7 +66,7 @@ export function PhotoCropper({ initialUrl, onChange }: Props) {
           <div className="relative h-72 w-56 overflow-hidden rounded-md bg-slate-900">
             <Cropper image={src} crop={crop} zoom={zoom} aspect={3 / 4} onCropChange={setCrop} onZoomChange={setZoom} onCropComplete={(_, px) => setArea(px)} />
           </div>
-          <label className="block text-xs text-slate-600">
+          <label className="block text-xs text-google-gray-600">
             Perbesar
             <input type="range" min={1} max={3} step={0.05} value={zoom} onChange={(e) => setZoom(Number(e.target.value))} className="ml-2 align-middle" />
           </label>
@@ -77,14 +77,14 @@ export function PhotoCropper({ initialUrl, onChange }: Props) {
         </div>
       ) : (
         <div className="flex items-end gap-3">
-          {preview ? <img src={preview} alt="Pratinjau foto peserta" className="h-32 w-24 rounded-md border border-slate-200 object-cover" /> : <div className="flex h-32 w-24 items-center justify-center rounded-md border border-dashed border-slate-300 text-xs text-slate-400">Belum ada</div>}
+          {preview ? <img src={preview} alt="Pratinjau foto peserta" className="h-32 w-24 rounded-inner border border-slate-200 object-cover" /> : <div className="flex h-32 w-24 items-center justify-center rounded-inner border border-dashed border-google-gray-300 text-xs text-google-gray-400">Belum ada</div>}
           <div>
             <input id="foto-input" type="file" accept="image/jpeg,image/png" className="text-sm" onChange={(e) => pick(e.target.files?.[0])} />
-            {preview && <button type="button" className="mt-1 block text-xs text-red-700 underline" onClick={() => { setPreview(null); onChange(null); }}>Hapus foto</button>}
+            {preview && <button type="button" className="mt-1 block text-xs font-medium text-google-red hover:underline" onClick={() => { setPreview(null); onChange(null); }}>Hapus foto</button>}
           </div>
         </div>
       )}
-      {error && <p role="alert" className="text-xs text-red-700">{error}</p>}
+      {error && <p role="alert" className="text-xs text-google-red">{error}</p>}
     </div>
   );
 }

@@ -3,15 +3,100 @@
 @tailwind utilities;
 
 @layer base {
-  :focus-visible { outline: 2px solid #C9A227; outline-offset: 2px; }
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-google-gray-50 font-sans text-google-gray-900 antialiased;
+  }
+
+  ::selection {
+    @apply bg-google-blue-surface text-google-blue-hover;
+  }
+
+  :focus-visible {
+    outline: 2px solid #1a73e8;
+    outline-offset: 2px;
+  }
 }
+
 @layer components {
-  .btn { @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50; }
-  .btn-primary { @apply btn bg-navy text-white hover:bg-navy-700; }
-  .btn-secondary { @apply btn border border-slate-300 bg-white text-slate-800 hover:bg-slate-50; }
-  .btn-danger { @apply btn border border-red-300 bg-white text-red-700 hover:bg-red-50; }
-  .input { @apply w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm placeholder:text-slate-400; }
-  .label { @apply mb-1 block text-sm font-medium text-slate-700; }
-  .card { @apply rounded-md border border-slate-200 bg-white p-4; }
-  .badge { @apply inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium; }
+  /* Tombol Material: pill, state fokus/hover halus */
+  .btn {
+    @apply inline-flex select-none items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 ease-in-out disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none;
+  }
+  .btn-primary {
+    @apply btn bg-google-blue text-white shadow-pill hover:bg-google-blue-hover hover:shadow-card-hover;
+  }
+  .btn-secondary {
+    @apply btn border border-google-gray-300 bg-white text-google-blue hover:border-google-blue-border hover:bg-google-gray-50;
+  }
+  .btn-neutral {
+    @apply btn border border-google-gray-300 bg-white text-google-gray-700 hover:bg-google-gray-50;
+  }
+  .btn-danger {
+    @apply btn border border-google-red-border bg-white text-google-red hover:bg-google-red-surface;
+  }
+  .btn-sheets {
+    @apply btn border border-google-green-border bg-google-green-surface text-google-green-hover hover:bg-[#d8efdc];
+  }
+  .btn-sm {
+    @apply gap-1.5 px-3 py-1.5 text-xs;
+  }
+  .btn-icon {
+    @apply inline-flex h-9 w-9 items-center justify-center rounded-full text-google-gray-500 transition-colors hover:bg-google-gray-100 hover:text-google-gray-700;
+  }
+
+  /* Permukaan */
+  .card {
+    @apply rounded-card border border-slate-200 bg-white p-5 shadow-card transition-shadow duration-200;
+  }
+  .card-hover {
+    @apply hover:shadow-card-hover;
+  }
+  .surface-muted {
+    @apply rounded-inner border border-slate-200 bg-google-gray-50;
+  }
+
+  /* Form */
+  .input {
+    @apply w-full rounded-inner border border-google-gray-300 bg-white px-3 py-2 text-sm text-google-gray-900 transition-colors placeholder:text-google-gray-500 focus:border-google-blue focus:outline-none focus:ring-4 focus:ring-google-blue/15;
+  }
+  .label {
+    @apply mb-1 block text-sm font-medium text-google-gray-700;
+  }
+  .search-field {
+    @apply input flex items-center gap-2 rounded-full py-2.5 pl-10;
+  }
+
+  /* Chip & badge */
+  .badge {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1 rounded-md bg-google-gray-100 px-2 py-1 font-mono text-xs font-medium text-[#174ea6];
+  }
+  .chip-blue {
+    @apply chip bg-google-blue-surface text-google-blue-hover;
+  }
+  .pill {
+    @apply inline-flex items-center gap-1.5 rounded-full bg-google-gray-100 px-3 py-1 text-xs font-medium text-google-gray-700;
+  }
+
+  /* Panel informatif (panduan format) */
+  .info-box {
+    @apply rounded-inner border border-slate-200 bg-google-gray-50 p-4;
+  }
+
+  /* Banner status */
+  .banner-error {
+    @apply rounded-inner border border-google-red-border bg-google-red-surface p-4 text-sm text-google-red;
+  }
+  .banner-warning {
+    @apply rounded-inner border border-google-yellow-border bg-google-yellow-surface p-4 text-sm text-google-yellow-hover;
+  }
+  .banner-info {
+    @apply rounded-inner border border-google-blue-border bg-google-blue-surface p-4 text-sm text-google-blue-hover;
+  }
 }

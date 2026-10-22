@@ -1,5 +1,5 @@
 import type {
-  AiJob, AiTask, DataRow, DatasetUpload, GenerateRequest, JobStatus, TemplateInfo,
+  AiJob, AiSettingsInput, AiStatus, AiTask, DataRow, DatasetUpload, GenerateRequest, JobStatus, TemplateInfo,
 } from '../types';
 
 export class ApiError extends Error {
@@ -22,7 +22,8 @@ export interface Api {
   deleteParticipant(id: string): Promise<void>;
   purgeSession(): Promise<void>;
 
-  aiStatus(): Promise<{ enabled: boolean }>;
+  aiStatus(): Promise<AiStatus>;
+  updateAiSettings(input: AiSettingsInput): Promise<AiStatus>;
   startAiSuggest(participantIds: string[], tasks: AiTask[]): Promise<{ jobId: string }>;
   getAiJob(id: string): Promise<AiJob>;
   importPdf(file: File): Promise<{ jobId: string }>;

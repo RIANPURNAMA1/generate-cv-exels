@@ -6,8 +6,8 @@ function IssueRow({ issue, onFix }: { issue: Issue; onFix: (participantId: strin
   const id = `fix-${issue.participantId}-${issue.field}`;
   return (
     <li className="rounded-md border border-slate-200 p-2 text-sm">
-      <p className={issue.severity === 'error' ? 'text-red-800' : 'text-amber-900'}>
-        <span className={`badge mr-2 ${issue.severity === 'error' ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-800'}`}>{issue.severity === 'error' ? 'Galat' : 'Peringatan'}</span>
+      <p className={issue.severity === 'error' ? 'text-google-red' : 'text-google-yellow-hover'}>
+        <span className={`badge mr-2 ${issue.severity === 'error' ? 'bg-google-red-surface text-google-red' : 'bg-google-yellow-surface text-google-yellow-hover'}`}>{issue.severity === 'error' ? 'Galat' : 'Peringatan'}</span>
         {issue.message}
       </p>
       {issue.field && (
@@ -32,16 +32,16 @@ function IssueRow({ issue, onFix }: { issue: Issue; onFix: (participantId: strin
 
 export function ValidationPanel({ issues, onFix }: { issues: Issue[]; onFix: (participantId: string, field: string, value: string) => void }) {
   if (issues.length === 0) {
-    return <p role="status" className="rounded-md border border-green-300 bg-green-50 p-3 text-sm text-green-900">Tidak ada masalah validasi. ✓</p>;
+    return <p role="status" className="rounded-inner border border-google-green-border bg-google-green-surface p-3 text-sm text-google-green-hover">Tidak ada masalah validasi. ✓</p>;
   }
   const byPerson = new Map<string, Issue[]>();
   for (const i of issues) byPerson.set(i.participantId, [...(byPerson.get(i.participantId) ?? []), i]);
   return (
     <div className="space-y-3" aria-live="polite">
-      <p className="text-sm text-slate-600">{issues.length} catatan pada {byPerson.size} peserta. Peringatan tidak menghentikan pembuatan CV.</p>
+      <p className="text-sm text-google-gray-600">{issues.length} catatan pada {byPerson.size} peserta. Peringatan tidak menghentikan pembuatan CV.</p>
       {Array.from(byPerson.entries()).map(([pid, list]) => (
         <details key={pid} className="rounded-md border border-slate-200 p-3" open={byPerson.size <= 3}>
-          <summary className="cursor-pointer text-sm font-semibold text-navy">{list[0]?.participantLabel} <span className="font-normal text-slate-500">({list.length})</span></summary>
+          <summary className="cursor-pointer text-sm font-semibold text-google-gray-900">{list[0]?.participantLabel} <span className="font-normal text-google-gray-500">({list.length})</span></summary>
           <ul className="mt-2 space-y-2">
             {list.map((i, k) => <IssueRow key={`${i.field}-${k}-${i.message}`} issue={i} onFix={onFix} />)}
           </ul>

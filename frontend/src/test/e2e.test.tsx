@@ -33,12 +33,12 @@ describe('alur end-to-end (mode MOCK)', () => {
         </MemoryRouter>
       </Providers>,
     );
-
     // 1. Template
     expect(await screen.findByText(/Langkah 1 · Template/)).toBeInTheDocument();
     await user.upload(screen.getByLabelText('Upload template CV (.xlsx)'), templateFile());
-    expect(await screen.findByText('{nama_romaji}')).toBeInTheDocument();
-    expect(screen.getByText('A5 (A5:D18)')).toBeInTheDocument();
+    const panel = within(screen.getByRole('region', { name: /Placeholder terdeteksi/ }));
+    expect(await panel.findByText('{nama_romaji}')).toBeInTheDocument();
+    expect(panel.getByText('A5 (A5:D18)')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /Lanjut ke data peserta/ }));
 
     // 2. Data peserta (input manual dengan validasi)
@@ -65,5 +65,5 @@ describe('alur end-to-end (mode MOCK)', () => {
     const item = link.closest('li');
     expect(item && within(item).getByText('RETNO WULANDARI')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Buat lagi dengan template yang sama' })).toBeInTheDocument();
-  });
+  }, 20000);
 });

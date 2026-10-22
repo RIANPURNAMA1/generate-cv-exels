@@ -10,6 +10,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Support\Facades\Log;
+use RuntimeException;
 use Throwable;
 
 class RunAiSuggestionsJob implements ShouldQueue
@@ -33,7 +34,9 @@ class RunAiSuggestionsJob implements ShouldQueue
             $participants = Participant::where('user_id', $run->user_id)->whereIn('id', $ids)->get()->mapWithKeys(fn ($p) => [$p->id => $p->data ?? []])->all();
 
             $c = $ai->collect($participants, $tasks);
-            $r = $c['items'] ? $ai->run($c['items']) : ['suggestions' => [], 'tokens_in' => 0, 'tokens_out' => 0];
+            $provider = $run->input['provider'] ?? null;
+            $model = $run->input['model'] ?? null;
+            $r = $c['items'] ? $ai->run($c['items'], $provider, $model) : ['suggestions' => [], 'tokens_in' => 0, 'tokens_out' => 0];
             $all = array_merge($c['local'], $r['suggestions']);
 
             // Simpan versi asli dan versi AI. Setiap saran berstatus "Disarankan AI" sampai pengguna memutuskan.
@@ -43,8 +46,11 @@ class RunAiSuggestionsJob implements ShouldQueue
                 'tokens_in' => $r['tokens_in'], 'tokens_out' => $r['tokens_out'],
             ]);
         } catch (Throwable $e) {
-            Log::warning('ai_run_failed', ['run' => $run->id, 'class' => get_class($e)]);
-            $run->update(['status' => 'failed', 'error' => 'Saran AI gagal dibuat. Coba lagi nanti.']);
+            Log::warning('ai_run_failed', ['run' => $run->id, 'class' => get_class($e), 'message' => $e->getMessage()]);
+            $error = $e instanceof RuntimeException && $e->getMessage() !== ''
+                ? mb_substr($e->getMessage(), 0, 200)
+                : 'Saran AI gagal dibuat. Coba lagi nanti.';
+            $run->update(['status' => 'failed', 'error' => $error]);
         }
     }
 }

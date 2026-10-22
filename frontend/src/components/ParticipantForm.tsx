@@ -29,7 +29,7 @@ function Field({ def, value, error, options, onChange }: { def: FieldDef; value:
       ) : (
         <input {...common} className="input" value={value} placeholder={def.hint} inputMode={def.type === 'number' ? 'decimal' : undefined} onChange={(e) => onChange(e.target.value)} />
       )}
-      {error && <p id={`${id}-err`} className="mt-0.5 text-xs text-red-700">{error}</p>}
+      {error && <p id={`${id}-err`} className="mt-0.5 text-xs text-google-red">{error}</p>}
     </div>
   );
 }
@@ -62,7 +62,7 @@ export function ParticipantForm({ initial, initialPhotoUrl, optionsFor, submitLa
   const errList = Object.values(errors);
   return (
     <form onSubmit={submit} className="space-y-6" noValidate>
-      <div aria-live="assertive" role="alert" className={errList.length ? 'rounded-md border border-red-300 bg-red-50 p-3 text-sm text-red-800' : 'sr-only'}>
+      <div aria-live="assertive" role="alert" className={errList.length ? 'banner-error' : 'sr-only'}>
         {errList.length > 0 && <><strong>Periksa isian berikut:</strong><ul className="list-disc pl-5">{errList.map((m) => <li key={m}>{m}</li>)}</ul></>}
       </div>
 
@@ -70,7 +70,7 @@ export function ParticipantForm({ initial, initialPhotoUrl, optionsFor, submitLa
 
       {SECTIONS.map((sec) => (
         <fieldset key={sec.id} className="space-y-2">
-          <legend className="mb-1 text-sm font-semibold text-navy">{sec.title}</legend>
+          <legend className="mb-1 text-sm font-semibold text-google-gray-900">{sec.title}</legend>
           <div className="grid gap-3 sm:grid-cols-2">
             {sec.fields.map((f) => (
               <Field key={f.name} def={f} value={values[f.name] ?? ''} error={errors[f.name]} options={f.type === 'dropdown' ? optionsFor(f.name) : null} onChange={(v) => patch({ [f.name]: v })} />

@@ -1,8 +1,11 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { AiProviderSwitch, useAiSettings } from '../components/AiSettingsDialog';
 import { DataPreviewTable } from '../components/DataPreviewTable';
 import { Dropzone } from '../components/Dropzone';
+import { useFooterAction } from '../components/FooterBar';
+import { Icon } from '../components/Icon';
 import { ParticipantForm } from '../components/ParticipantForm';
 import { PhotoCropper } from '../components/PhotoCropper';
 import { EmptyState, Skeleton } from '../components/Skeleton';
@@ -11,7 +14,7 @@ import { dropdownChoicesFor, participantLabel } from '../lib/validator';
 import { useAiJob } from '../hooks/useJobPolling';
 import { getApi } from '../services/api';
 import { useWizard } from '../state/wizard';
-import type { DataRow, Participant } from '../types';
+import type { AiStatus, DataRow, Participant } from '../types';
 
 type Tab = 'upload' | 'manual' | 'pdf';
 const TABS: Array<{ id: Tab; label: string }> = [
@@ -50,7 +53,7 @@ function UploadTab() {
 
   return (
     <div className="space-y-3">
-      <Dropzone accept=".xlsx,.csv" label="Upload data peserta (.xlsx / .csv)" hint="Satu baris per peserta, baris pertama berisi nama kolom. Maks 500 baris." busy={up.isPending} onFile={(f) => up.mutate(f)} />
+      <Dropzone accept=".xlsx,.csv" label="Upload data peserta (.xlsx / .csv)" hint="Satu baris per peserta, baris pertama berisi nama kolom. Maks 500 baris." notes={['Excel (.xlsx)', 'CSV (.csv)', 'Maks 500 baris']} busy={up.isPending} onFile={(f) => up.mutate(f)} />
       {up.isPending ? <Skeleton lines={4} /> : <DataPreviewTable columns={lastColumns.length ? lastColumns : state.columns} rows={lastRows.length ? lastRows : state.participants.map((p) => p.data)} />}
     </div>
   );
@@ -81,7 +84,8 @@ function PdfTab() {
   const { dispatch } = useWizard();
   const toast = useToast();
   const optionsFor = useOptionsFor();
-  const status = useQuery({ queryKey: ['ai-status'], queryFn: () => getApi().aiStatus() });
+  const aiDialog = useAiSettings();
+  const status = useQuery<AiStatus>({ queryKey: ['ai-status'], queryFn: () => getApi().aiStatus() });
   const [jobId, setJobId] = useState<string | null>(null);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const job = useAiJob(jobId);
@@ -98,16 +102,28 @@ function PdfTab() {
   }, [jobId, done?.result?.hasPhoto]);
 
   if (status.isLoading) return <Skeleton lines={2} />;
-  if (!status.data?.enabled) return <EmptyState title="Langkah AI belum diaktifkan" hint="Isi ANTHROPIC_API_KEY di server untuk mengimpor CV lama dari PDF." />;
 
   return (
     <div className="space-y-3">
-      <Dropzone accept=".pdf" label="Upload PDF CV lama" hint="Maks 15 MB. Hasil ditampilkan sebagai form yang bisa diedit sebelum dipakai." busy={start.isPending || (!!jobId && !done && job.data?.status !== 'failed')} onFile={(f) => start.mutate(f)} />
-      {job.data?.status === 'failed' && <p role="alert" className="text-sm text-red-700">{job.data.error ?? 'Impor gagal.'}</p>}
+      <AiProviderSwitch />
+      {!status.data?.enabled && (
+        <div className="banner-warning flex flex-wrap items-center justify-between gap-3">
+          <span className="text-sm">
+            <strong className="font-semibold">Langkah AI belum aktif.</strong>{' '}
+            {status.data?.reason ?? 'Kunci API belum diatur.'} Aktifkan dengan menambah kunci API untuk penyedia pilihan.
+          </span>
+          <button type="button" className="btn-primary btn-sm" onClick={() => aiDialog.setOpen(true)}>
+            <Icon name="key" className="h-4 w-4" />
+            Atur AI
+          </button>
+        </div>
+      )}
+      <Dropzone accept=".pdf" label="Upload PDF CV lama" hint="Maks 15 MB. Hasil ditampilkan sebagai form yang bisa diedit sebelum dipakai." notes={['PDF', 'Maks 15 MB', 'Ekstraksi AI']} disabled={!status.data?.enabled} busy={start.isPending || (!!jobId && !done && job.data?.status !== 'failed')} onFile={(f) => start.mutate(f)} />
+      {job.data?.status === 'failed' && <p role="alert" className="text-sm text-google-red">{job.data.error ?? 'Impor gagal.'}</p>}
       {done && (
         <div className="space-y-3">
-          <p className="text-sm"><span className="badge mr-2 bg-gold/20 text-navy">Disarankan AI</span>Periksa dan perbaiki hasil ekstraksi sebelum menyimpan.</p>
-          {(done.result?.warnings ?? []).length > 0 && <ul className="list-disc pl-5 text-xs text-amber-900">{(done.result?.warnings ?? []).map((w) => <li key={w}>{w}</li>)}</ul>}
+          <p className="text-sm"><span className="badge mr-2 bg-google-yellow-surface text-google-yellow-hover">Disarankan AI</span>Periksa dan perbaiki hasil ekstraksi sebelum menyimpan.</p>
+          {(done.result?.warnings ?? []).length > 0 && <ul className="list-disc pl-5 text-xs text-google-gray-600">{(done.result?.warnings ?? []).map((w) => <li key={w}>{w}</li>)}</ul>}
           <ParticipantForm
             key={jobId}
             initial={done.result?.fields ?? {}}
@@ -146,11 +162,11 @@ function ParticipantRow({ p }: { p: Participant }) {
   const label = participantLabel(p, state.mapping);
   return (
     <li className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
-      <span>{label} <span className={`badge ml-1 ${p.hasPhoto ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'}`}>{p.hasPhoto ? 'Foto ada' : 'Tanpa foto'}</span></span>
+      <span>{label} <span className={`badge ml-1 ${p.hasPhoto ? 'bg-google-green-surface text-google-green-hover' : 'bg-google-yellow-surface text-google-yellow-hover'}`}>{p.hasPhoto ? 'Foto ada' : 'Tanpa foto'}</span></span>
       <span className="flex items-center gap-2">
         <details>
-          <summary className="cursor-pointer text-xs text-navy underline">Foto</summary>
-          <div className="absolute z-10 mt-1 rounded-md border border-slate-200 bg-white p-3 shadow-sm">
+          <summary className="cursor-pointer text-xs font-medium text-google-blue hover:underline">Foto</summary>
+          <div className="absolute z-10 mt-1 rounded-inner border border-slate-200 bg-white p-3 shadow-card-hover">
             <PhotoCropper onChange={(b) => b && attach.mutate(b)} />
           </div>
         </details>
@@ -165,17 +181,26 @@ export function DataPage() {
   const nav = useNavigate();
   const [tab, setTab] = useState<Tab>('upload');
 
+  useFooterAction(
+    <button type="button" className="btn-primary" disabled={!state.template || state.participants.length === 0} onClick={() => nav('/matching')}>
+      Lanjut ke pencocokan
+      <Icon name="arrow-right" className="h-4 w-4" />
+    </button>,
+    [state.template, state.participants.length, nav],
+  );
+
   if (!state.template) {
     return <EmptyState title="Pilih template dulu" hint="Kembali ke langkah 1 untuk meng-upload template." />;
   }
   return (
     <div className="space-y-6">
-      <section className="card space-y-4" aria-labelledby="d-title">
-        <h2 id="d-title" className="text-base font-semibold text-navy">Langkah 2 · Data peserta</h2>
+      <section className="card space-y-4 p-6" aria-labelledby="d-title">
+        <p className="text-xs font-semibold tracking-wide text-google-blue">Langkah 2 · Data peserta</p>
+        <h2 id="d-title" className="text-lg font-semibold text-google-gray-900">Data peserta</h2>
         <div role="tablist" aria-label="Sumber data" className="flex flex-wrap gap-2 border-b border-slate-200">
           {TABS.map((t) => (
             <button key={t.id} role="tab" type="button" id={`tab-${t.id}`} aria-selected={tab === t.id} aria-controls={`panel-${t.id}`}
-              className={`-mb-px rounded-t-md border px-3 py-2 text-sm ${tab === t.id ? 'border-slate-200 border-b-white bg-white font-semibold text-navy' : 'border-transparent text-slate-600 hover:text-navy'}`}
+              className={`-mb-px rounded-t-md border px-3 py-2 text-sm transition-colors ${tab === t.id ? 'border-slate-200 border-b-white bg-white font-semibold text-google-blue' : 'border-transparent text-google-gray-600 hover:bg-google-gray-50 hover:text-google-gray-900'}`}
               onClick={() => setTab(t.id)}>{t.label}</button>
           ))}
         </div>
@@ -186,16 +211,18 @@ export function DataPage() {
         </div>
       </section>
 
-      <section className="card" aria-labelledby="d-list">
-        <h2 id="d-list" className="mb-2 text-base font-semibold text-navy">Peserta ({state.participants.length})</h2>
-        {state.participants.length === 0 ? <EmptyState title="Belum ada peserta" hint="Upload berkas, isi form, atau impor dari PDF." /> : (
+      <section className="card p-6" aria-labelledby="d-list">
+        <h2 id="d-list" className="mb-3 text-base font-semibold text-google-gray-900">Peserta ({state.participants.length})</h2>
+        {state.participants.length === 0 ? <EmptyState title="Belum ada peserta" hint="Upload berkas, isi form, atau impor dari PDF." icon="file" /> : (
           <ul className="divide-y divide-slate-100">{state.participants.map((p) => <ParticipantRow key={p.id} p={p} />)}</ul>
         )}
       </section>
 
       <div className="flex justify-between">
-        <Link to="/template" className="btn-secondary">← Kembali</Link>
-        <button type="button" className="btn-primary" disabled={state.participants.length === 0} onClick={() => nav('/matching')}>Lanjut ke pencocokan →</button>
+        <Link to="/template" className="btn-secondary">
+          <Icon name="arrow-left" className="h-4 w-4" />
+          Kembali
+        </Link>
       </div>
     </div>
   );

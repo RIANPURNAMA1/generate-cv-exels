@@ -29,8 +29,9 @@ Route::middleware(['throttle:120,1'])->group(function () {
 
     Route::get('/sample-template', [TemplateController::class, 'sampleTemplate']);
 
-    // Langkah AI (opsional; 503 bila ANTHROPIC_API_KEY kosong)
+    // Langkah AI (opsional; 503 bila penyedia aktif belum punya kunci API)
     Route::get('/ai/status', [AiController::class, 'status']);
+    Route::put('/ai/settings', [AiController::class, 'updateSettings'])->middleware('throttle:20,1');
     Route::post('/ai/suggest', [AiController::class, 'suggest'])->middleware('throttle:10,1');
     Route::post('/imports/pdf', [AiController::class, 'importPdf'])->middleware('throttle:10,1');
     Route::get('/ai/jobs/{id}', [AiController::class, 'show']);

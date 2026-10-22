@@ -10,6 +10,7 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use RuntimeException;
 use Symfony\Component\Process\Process;
 use Throwable;
 
@@ -30,7 +31,11 @@ class ImportPdfJob implements ShouldQueue
         $run->update(['status' => 'processing']);
         $disk = Storage::disk('local');
         try {
-            $res = $ai->importPdf($disk->get($run->file_path));
+            $res = $ai->importPdf(
+                $disk->get($run->file_path),
+                $run->input['provider'] ?? null,
+                $run->input['model'] ?? null,
+            );
             $warnings = $res['warnings'];
 
             $photoRel = $this->extractPhoto($disk->path($run->file_path), $run->id);
@@ -43,8 +48,12 @@ class ImportPdfJob implements ShouldQueue
                 'tokens_in' => $res['tokens_in'], 'tokens_out' => $res['tokens_out'],
             ]);
         } catch (Throwable $e) {
-            Log::warning('ai_import_failed', ['run' => $run->id, 'class' => get_class($e)]);
-            $run->update(['status' => 'failed', 'error' => 'Impor PDF gagal.']);
+            Log::warning('ai_import_failed', ['run' => $run->id, 'class' => get_class($e), 'message' => $e->getMessage()]);
+            // Pesan dari lapisan AI aman ditampilkan (tanpa kunci API); galat lain disamarkan.
+            $error = $e instanceof RuntimeException && $e->getMessage() !== ''
+                ? mb_substr($e->getMessage(), 0, 200)
+                : 'Impor PDF gagal.';
+            $run->update(['status' => 'failed', 'error' => $error]);
         } finally {
             $disk->delete($run->file_path); // PDF sumber tidak disimpan lebih lama dari perlu
         }

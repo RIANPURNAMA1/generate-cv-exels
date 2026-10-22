@@ -1,5 +1,5 @@
 import * as XLSX from 'xlsx';
-import type { AiJob, AiTask, DataRow, DatasetUpload, GenerateRequest, JobItem, JobStatus, TemplateInfo } from '../types';
+import type { AiJob, AiProviderId, AiSettingsInput, AiStatus, AiTask, DataRow, DatasetUpload, GenerateRequest, JobItem, JobStatus, TemplateInfo } from '../types';
 import { parseTemplateFile, readFileBuffer } from '../lib/placeholders';
 import { type Api } from './types';
 
@@ -10,13 +10,41 @@ interface MockJob {
   items: JobItem[];
 }
 
+const MOCK_PROVIDERS: Array<{ id: AiProviderId; label: string; model: string; models: string[]; nativePdf: boolean }> = [
+  { id: 'claude', label: 'Claude (Anthropic)', model: 'claude-sonnet-5-5', models: ['claude-sonnet-5-5', 'claude-opus-4-1', 'claude-haiku-4-5'], nativePdf: true },
+  { id: 'openai', label: 'GPT (OpenAI)', model: 'gpt-4o-mini', models: ['gpt-4o-mini', 'gpt-4o', 'gpt-4.1-mini'], nativePdf: false },
+  { id: 'gemini', label: 'Gemini (Google)', model: 'gemini-2.0-flash', models: ['gemini-2.0-flash', 'gemini-2.0-flash-lite', 'gemini-1.5-pro'], nativePdf: true },
+];
+
 const store = {
   templates: new Map<string, TemplateInfo>(),
   participants: new Map<string, DataRow>(),
   jobs: new Map<string, MockJob>(),
   ai: new Map<string, AiJob>(),
+  aiProvider: 'claude' as AiProviderId,
+  aiModel: '',
+  aiEnabled: true,
+  aiKeys: new Set<AiProviderId>(['claude']),
   seq: 0,
 };
+
+function mockAiStatus(): AiStatus {
+  const providers = MOCK_PROVIDERS.map((p) => ({
+    ...p,
+    hasKey: store.aiKeys.has(p.id),
+    model: p.id === store.aiProvider && store.aiModel ? store.aiModel : p.model,
+  }));
+  const active = providers.find((p) => p.id === store.aiProvider) ?? providers[0]!;
+  const enabled = store.aiEnabled && active.hasKey;
+  return {
+    enabled,
+    provider: active.id,
+    providerLabel: active.label,
+    model: active.model,
+    providers,
+    reason: enabled ? null : store.aiEnabled ? `Kunci API untuk ${active.label} belum diatur.` : 'Langkah AI dimatikan pada pengaturan aplikasi.',
+  };
+}
 
 const id = (p: string) => `${p}-${(++store.seq).toString(16).padStart(8, '0')}-mock`;
 
@@ -25,6 +53,10 @@ export function resetMock(): void {
   store.participants.clear();
   store.jobs.clear();
   store.ai.clear();
+  store.aiProvider = 'claude';
+  store.aiModel = '';
+  store.aiEnabled = true;
+  store.aiKeys = new Set<AiProviderId>(['claude']);
   store.seq = 0;
 }
 
@@ -92,7 +124,17 @@ export const mockApi: Api = {
   },
 
   async aiStatus() {
-    return { enabled: true };
+    return mockAiStatus();
+  },
+  async updateAiSettings(input: AiSettingsInput) {
+    if (input.provider) {
+      store.aiProvider = input.provider;
+      store.aiModel = '';
+    }
+    if (typeof input.model === 'string') store.aiModel = input.model;
+    if (typeof input.enabled === 'boolean') store.aiEnabled = input.enabled;
+    if (input.apiKey) store.aiKeys.add(store.aiProvider);
+    return mockAiStatus();
   },
   async startAiSuggest(pids: string[], tasks: AiTask[]) {
     const jid = id('ai');

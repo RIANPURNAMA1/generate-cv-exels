@@ -1,15 +1,19 @@
-import { useId, useRef, useState, type DragEvent, type KeyboardEvent } from 'react';
+import { useId, useRef, useState, type DragEvent } from 'react';
+import { Icon } from './Icon';
 
 interface Props {
   accept: string; // contoh ".xlsx"
   label: string;
   hint?: string;
+  notes?: string[]; // badge format berkas
+  cta?: string;
   disabled?: boolean;
   busy?: boolean;
   onFile: (file: File) => void;
 }
 
-export function Dropzone({ accept, label, hint, disabled, busy, onFile }: Props) {
+/** Area unggah gaya Material: ikon, tombol primer pill, dan badge format berkas. */
+export function Dropzone({ accept, label, hint, notes, cta = 'Pilih file dari komputer', disabled, busy, onFile }: Props) {
   const id = useId();
   const input = useRef<HTMLInputElement>(null);
   const [over, setOver] = useState(false);
@@ -20,28 +24,38 @@ export function Dropzone({ accept, label, hint, disabled, busy, onFile }: Props)
     setOver(false);
     if (!disabled) pick(e.dataTransfer.files[0]);
   };
-  const onKey = (e: KeyboardEvent) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      input.current?.click();
-    }
-  };
 
   return (
     <div
-      role="button"
-      tabIndex={disabled ? -1 : 0}
-      aria-disabled={disabled}
-      aria-describedby={`${id}-hint`}
-      onKeyDown={onKey}
-      onClick={() => !disabled && input.current?.click()}
       onDragOver={(e) => { e.preventDefault(); setOver(true); }}
       onDragLeave={() => setOver(false)}
       onDrop={onDrop}
-      className={`flex cursor-pointer flex-col items-center justify-center rounded-md border-2 border-dashed p-6 text-center transition-colors ${over ? 'border-navy bg-navy-50' : 'border-slate-300 hover:border-navy'} ${disabled ? 'opacity-50' : ''}`}
+      className={`flex flex-col items-center justify-center gap-3 rounded-card border-2 border-dashed p-8 text-center transition-colors duration-200 ${
+        over ? 'border-google-blue bg-google-blue-surface' : 'border-google-gray-300 bg-google-gray-50 hover:border-google-blue hover:bg-google-blue-surface/40'
+      } ${disabled ? 'pointer-events-none opacity-60' : ''}`}
     >
-      <span className="text-sm font-medium text-navy">{busy ? 'Memproses…' : label}</span>
-      <span id={`${id}-hint`} className="mt-1 text-xs text-slate-500">{hint ?? `Seret berkas ke sini atau tekan Enter untuk memilih (${accept})`}</span>
+      <span className="grid h-12 w-12 place-items-center rounded-full bg-white text-google-blue shadow-card">
+        <Icon name="upload" className="h-6 w-6" />
+      </span>
+
+      <div>
+        <p className="text-base font-semibold text-google-gray-900">{busy ? 'Memproses berkas…' : label}</p>
+        {hint && <p id={`${id}-hint`} className="mt-1 max-w-md text-sm text-google-gray-600">{hint}</p>}
+      </div>
+
+      <button type="button" className="btn-primary" disabled={disabled || busy} onClick={() => input.current?.click()}>
+        <Icon name="upload" className="h-4 w-4" />
+        {busy ? 'Memproses…' : cta}
+      </button>
+
+      {notes && notes.length > 0 && (
+        <ul className="flex flex-wrap items-center justify-center gap-2">
+          {notes.map((n) => (
+            <li key={n} className="pill bg-white text-google-gray-600">{n}</li>
+          ))}
+        </ul>
+      )}
+
       <input
         ref={input}
         type="file"
@@ -49,6 +63,7 @@ export function Dropzone({ accept, label, hint, disabled, busy, onFile }: Props)
         className="sr-only"
         tabIndex={-1}
         aria-label={label}
+        aria-describedby={`${id}-hint`}
         data-testid={`dropzone-${accept.replace(/[^a-z]/g, '')}`}
         onClick={(e) => e.stopPropagation()}
         onChange={(e) => {

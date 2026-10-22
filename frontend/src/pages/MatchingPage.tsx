@@ -3,6 +3,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AiSuggestionPanel } from '../components/AiSuggestionPanel';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { useFooterAction } from '../components/FooterBar';
+import { Icon } from '../components/Icon';
 import { MappingTable } from '../components/MappingTable';
 import { EmptyState } from '../components/Skeleton';
 import { useToast } from '../components/Toast';
@@ -11,7 +13,7 @@ import { autoMatch, unusedColumns } from '../lib/automatch';
 import { participantLabel, validateParticipants } from '../lib/validator';
 import { getApi } from '../services/api';
 import { useWizard } from '../state/wizard';
-import type { AiSuggestion, AiTask, GenerateOptions } from '../types';
+import type { AiStatus, AiSuggestion, AiTask, GenerateOptions } from '../types';
 
 const OPTION_LABELS: Array<[keyof GenerateOptions, string]> = [
   ['jpDate', 'Format tanggal lahir Jepang (年 月 日)'],
@@ -44,7 +46,7 @@ export function MatchingPage() {
   const unused = unusedColumns(state.columns, state.mapping, placeholders);
 
   // AI
-  const aiStatus = useQuery({ queryKey: ['ai-status'], queryFn: () => getApi().aiStatus() });
+  const aiStatus = useQuery<AiStatus>({ queryKey: ['ai-status'], queryFn: () => getApi().aiStatus() });
   const aiJob = useAiJob(aiJobId);
   const startAi = useMutation({
     mutationFn: (tasks: AiTask[]) => getApi().startAiSuggest(state.participants.map((p) => p.id), tasks),
@@ -87,12 +89,6 @@ export function MatchingPage() {
     onError: (e: Error) => toast.push(e.message, 'error'),
   });
 
-  if (!state.template || state.participants.length === 0) {
-    return (
-      <EmptyState title="Template atau data peserta belum lengkap" hint="Selesaikan langkah 1 dan 2 dulu." />
-    );
-  }
-
   const pending = state.ai.filter((s) => s.status === 'suggested' && s.suggested !== null).length;
   const labelOf = (pid: string) => {
     const p = state.participants.find((x) => x.id === pid);
@@ -100,20 +96,43 @@ export function MatchingPage() {
   };
   const run = () => (pending > 0 ? setConfirmPending(true) : generate.mutate());
 
+  useFooterAction(
+    <div className="flex flex-col items-end gap-1">
+      {hasErrors && <p role="alert" className="text-xs text-google-red">Perbaiki galat validasi terlebih dahulu.</p>}
+      <button
+        type="button"
+        className="btn-primary"
+        disabled={!state.template || state.participants.length === 0 || hasErrors || generate.isPending}
+        onClick={run}
+      >
+        {generate.isPending ? 'Memulai…' : `Buat CV (${state.participants.length})`}
+        <Icon name="arrow-right" className="h-4 w-4" />
+      </button>
+    </div>,
+    [state.template, state.participants.length, hasErrors, generate.isPending, pending],
+  );
+
+  if (!state.template || state.participants.length === 0) {
+    return (
+      <EmptyState title="Template atau data peserta belum lengkap" hint="Selesaikan langkah 1 dan 2 dulu." />
+    );
+  }
+
   return (
     <div className="space-y-6">
-      <section className="card space-y-3" aria-labelledby="m-map">
-        <h2 id="m-map" className="text-base font-semibold text-navy">Langkah 3 · Pencocokan</h2>
+      <section className="card space-y-3 p-6" aria-labelledby="m-map">
+        <p className="text-xs font-semibold tracking-wide text-google-blue">Langkah 3 · Pencocokan</p>
+        <h2 id="m-map" className="text-lg font-semibold text-google-gray-900">Pencocokan placeholder & kolom</h2>
         <MappingTable placeholders={placeholders} columns={state.columns} mapping={state.mapping} onChange={(ph, col) => {
           const next = { ...state.mapping };
           if (col) next[ph] = col; else delete next[ph];
           dispatch({ type: 'SET_MAPPING', mapping: next });
         }} />
-        {unused.length > 0 && <p className="text-xs text-slate-600"><span className="badge mr-1 bg-slate-100 text-slate-700">Tidak terpakai</span>{unused.join(', ')}</p>}
+        {unused.length > 0 && <p className="text-xs text-google-gray-600"><span className="badge mr-1 bg-google-gray-100 text-google-gray-700">Tidak terpakai</span>{unused.join(', ')}</p>}
       </section>
 
-      <section className="card space-y-2" aria-labelledby="m-opt">
-        <h2 id="m-opt" className="text-base font-semibold text-navy">Opsi pemrosesan</h2>
+      <section className="card space-y-2 p-6" aria-labelledby="m-opt">
+        <h2 id="m-opt" className="text-base font-semibold text-google-gray-900">Opsi pemrosesan</h2>
         {OPTION_LABELS.map(([k, label]) => (
           <label key={k} className="flex items-center gap-2 text-sm">
             <input type="checkbox" checked={state.options[k]} onChange={(e) => dispatch({ type: 'SET_OPTION', key: k, value: e.target.checked })} />
@@ -122,15 +141,16 @@ export function MatchingPage() {
         ))}
       </section>
 
-      <section className="card space-y-3" aria-labelledby="m-val">
-        <h2 id="m-val" className="text-base font-semibold text-navy">Validasi</h2>
+      <section className="card space-y-3 p-6" aria-labelledby="m-val">
+        <h2 id="m-val" className="text-base font-semibold text-google-gray-900">Validasi</h2>
         <ValidationBlock issues={issues} onFix={(pid, field, value) => dispatch({ type: 'UPDATE_FIELD', id: pid, field: state.mapping[field] ?? field, value })} />
       </section>
 
-      <section className="card space-y-3" aria-labelledby="m-ai">
-        <h2 id="m-ai" className="text-base font-semibold text-navy">Saran AI (opsional)</h2>
+      <section className="card space-y-3 p-6" aria-labelledby="m-ai">
+        <h2 id="m-ai" className="text-base font-semibold text-google-gray-900">Saran AI (opsional)</h2>
         <AiSuggestionPanel
           enabled={!!aiStatus.data?.enabled}
+          status={aiStatus.data ?? null}
           busy={startAi.isPending || (!!aiJobId && aiJob.data?.status !== 'failed')}
           error={aiJob.data?.status === 'failed' ? aiJob.data.error ?? 'Saran AI gagal.' : null}
           suggestions={state.ai}
@@ -141,11 +161,10 @@ export function MatchingPage() {
       </section>
 
       <div className="flex items-center justify-between">
-        <Link to="/data" className="btn-secondary">← Kembali</Link>
-        <div className="text-right">
-          {hasErrors && <p role="alert" className="mb-1 text-xs text-red-700">Perbaiki galat validasi terlebih dahulu.</p>}
-          <button type="button" className="btn-primary" disabled={hasErrors || generate.isPending} onClick={run}>{generate.isPending ? 'Memulai…' : `Buat CV (${state.participants.length})`}</button>
-        </div>
+        <Link to="/data" className="btn-secondary">
+          <Icon name="arrow-left" className="h-4 w-4" />
+          Kembali
+        </Link>
       </div>
 
       <ConfirmDialog open={confirmPending} title="Ada saran AI yang belum diputuskan" onCancel={() => setConfirmPending(false)} onConfirm={() => { setConfirmPending(false); generate.mutate(); }}>
